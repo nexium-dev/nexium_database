@@ -1,0 +1,7 @@
+python-dotenv
+setuptools
+twine
+
+sqlmodel
+sqlalchemy[asyncio]
+aiomysql
