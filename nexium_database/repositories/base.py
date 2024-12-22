@@ -83,8 +83,11 @@ class BaseRepository(Generic[ModelType]):
     async def get_last(self, *filters: Union[ClauseElement, List[ClauseElement]], include_deleted=False) -> ModelType:
         return await self.get_by_index(index=-1, include_deleted=include_deleted, *filters)
 
-    async def update(self, id_: int, include_deleted=False, **kwargs) -> ModelType:
-        query = await self._create_update_query(id_=id_, updated_at=datetime.now(UTC), **kwargs)
+    async def update(self, id_: int, include_deleted=False, without_updated_at: bool = False, **kwargs) -> ModelType:
+        if not without_updated_at:
+            query = await self._create_update_query(id_=id_, updated_at=datetime.now(UTC), **kwargs)
+        else:
+            query = await self._create_update_query(id_=id_, **kwargs)
 
         async with self.session() as session:
             async with session.begin():
@@ -93,7 +96,13 @@ class BaseRepository(Generic[ModelType]):
         return await self.get_by_id(id_, include_deleted=include_deleted)
 
     async def delete(self, id_: int) -> ModelType:
-        return await self.update(id_=id_, is_deleted=True, include_deleted=True)
+        return await self.update(
+            id_=id_,
+            deleted_at=datetime.now(UTC),
+            is_deleted=True,
+            include_deleted=True,
+            without_updated_at=True,
+        )
 
     async def get_by_id(self, id_: int, include_deleted: bool = False) -> ModelType:
         return await self.get(and_(self.model.id == id_), include_deleted=include_deleted)
